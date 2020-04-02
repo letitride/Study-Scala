@@ -9,7 +9,7 @@ import javafx.event.EventHandler
 import javafx.geometry.Pos
 import javafx.scene.Scene
 import javafx.scene.control.cell.PropertyValueFactory
-import javafx.scene.control.{Label, TableColumn, TableRow, TableView}
+import javafx.scene.control.{Label, TableCell, TableColumn, TableRow, TableView}
 import javafx.scene.input.{DragEvent, MouseEvent, TransferMode}
 import javafx.scene.layout.{BorderPane, HBox}
 import javafx.scene.media.{Media, MediaPlayer, MediaView}
@@ -52,7 +52,7 @@ class Main extends Application{
         row.setOnMouseClicked(new EventHandler[MouseEvent] {
           override def handle(t: MouseEvent): Unit = {
             if(t.getClickCount >= 1 && !row.isEmpty){
-              playMovie(row.getItem, mediaView, timeLabel)
+              playMovie(row.getItem, tableView, mediaView, timeLabel)
             }
           }
         })
@@ -67,7 +67,16 @@ class Main extends Application{
     timeColumn.setCellValueFactory(new PropertyValueFactory("time"))
     timeColumn.setPrefWidth(80)
 
-    tableView.getColumns.setAll(fileNameColumn, timeColumn)
+    val deleteActionColumn = new TableColumn[Movie, Long]("削除")
+    deleteActionColumn.setCellValueFactory(new PropertyValueFactory("id"))
+    deleteActionColumn.setPrefWidth(60)
+    deleteActionColumn.setCellFactory(new Callback[TableColumn[Movie, Long], TableCell[Movie, Long]]() {
+      override def call(p: TableColumn[Movie, Long]): TableCell[Movie, Long] = {
+        new DeleteCell(movies, mediaView, tableView)
+      }
+    })
+
+    tableView.getColumns.setAll(fileNameColumn, timeColumn, deleteActionColumn)
 
     val baseBorderPane = new BorderPane()
     baseBorderPane.setStyle("-fx-background-color: Black")
@@ -98,12 +107,19 @@ class Main extends Application{
             val filePath = f.getAbsolutePath
             val fileName = f.getName
             val media = new Media(f.toURI.toString)
-            val time = formatTime(media.getDuration)
-            val movie = Movie(System.currentTimeMillis(), fileName, time, filePath, media)
-            while (movies.contains(movie)){
-              movie.setId(movie.getId + 1L)
-            }
-            movies.add(movie)
+            val player = new MediaPlayer(media)
+            player.setOnReady(new Runnable {
+              override def run(): Unit = {
+                val time = formatTime(media.getDuration)
+                val movie = Movie(System.currentTimeMillis(), fileName, time, filePath, media)
+                while (movies.contains(movies)){
+                  movie.setId(movie.getId + 1L)
+                }
+                movies.add(movie)
+                player.dispose()
+              }
+            })
+
           }
         }
         event.consume()
@@ -114,8 +130,7 @@ class Main extends Application{
     primaryStage.show()
   }
 
-  private[this] def playMovie(movie: Movie, mediaView: MediaView, timeLabel: Label) = {
-    if(mediaView.getMediaPlayer != null){
+  private[this] def playMovie(movie: Movie,tableView: TableView[Movie], mediaView: MediaView, timeLabel: Label): Unit = {    if(mediaView.getMediaPlayer != null){
       val oldPlayer = mediaView.getMediaPlayer
       oldPlayer.stop()
       oldPlayer.dispose()
@@ -131,11 +146,24 @@ class Main extends Application{
       override def run(): Unit = {
         timeLabel.setText(formatTime(mediaPlayer.getCurrentTime, mediaPlayer.getTotalDuration))
       }
+      mediaPlayer.setOnEndOfMedia(new Runnable {
+        override def run(): Unit = playNext(tableView, mediaView, timeLabel)
+      })
     })
 
     mediaView.setMediaPlayer(mediaPlayer)
     mediaPlayer.setRate(1.25)
     mediaPlayer.play()
+  }
+
+  private[this] def playNext(tableView: TableView[Movie], mediaView: MediaView, timeLabel: Label): Unit = {
+    val selectionModel = tableView.getSelectionModel
+    if (selectionModel.isEmpty) return
+    val index = selectionModel.getSelectedIndex
+    val nextIndex = (index + 1) % tableView.getItems.size()
+    selectionModel.select(nextIndex)
+    val movie = selectionModel.getSelectedItem
+    playMovie(movie, tableView, mediaView, timeLabel)
   }
 
   private[this] def formatTime(elapsed: Duration): String = {
