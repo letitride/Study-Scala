@@ -9,5 +9,6 @@ scalastyleSources in Compile := (unmanagedSourceDirectories in Compile).value
 libraryDependencies += "org.scalatest" %% "scalatest" % "3.1.1" % "test"
 libraryDependencies += "org.mockito" % "mockito-core" % "2.21.0" % "test"
 libraryDependencies += "org.scalatestplus" %% "mockito-3-2" % "3.1.1.0"
+libraryDependencies += "org.scala-lang" % "scala-reflect" % scalaVersion.value
 
 scalacOptions ++= Seq("-encoding", "UTF-8")
