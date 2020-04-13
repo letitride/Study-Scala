@@ -1,4 +1,4 @@
-name := "scala-concurrent"
+name := "akka"
 
 version := "0.1"
 

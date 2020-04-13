@@ -3,7 +3,7 @@ import java.util.concurrent.{ForkJoinPool, RecursiveTask}
 object ForkJoinSumStudy extends App{
 
   val length = 10000000
-  val list = (for(i <- 1 to length) yield i.toString).toList
+  val list = (for(i <- 1 to length) yield i.toLong).toList
   val pool = new ForkJoinPool()
 
   class AggregateTask(list:List[Long]) extends RecursiveTask[Long]{
